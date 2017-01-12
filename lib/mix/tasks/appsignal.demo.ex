@@ -6,19 +6,16 @@ defmodule Mix.Tasks.Appsignal.Demo do
   @shortdoc "Perform and send a demonstration error and performance issue to AppSignal."
 
   def run(_args) do
-    IO.puts "Hello world"
     pstart()
   end
 
   # @decorate transaction
   defp pstart do
     Appsignal.start(nil, nil)
-    IO.inspect Appsignal.started?()
-    # create_transaction_error_request()
     create_transaction_performance_request()
+    create_transaction_error_request()
   end
 
-  # @decorate transaction_event
   defp create_transaction_error_request do
     transaction = Appsignal.Transaction.start(
       Appsignal.Transaction.generate_id,
@@ -28,18 +25,12 @@ defmodule Mix.Tasks.Appsignal.Demo do
     |> Appsignal.Transaction.set_meta_data("demo_sample", "true")
     |> Appsignal.Transaction.set_meta_data("path", "/hello")
     |> Appsignal.Transaction.set_meta_data("method", "GET")
-
-    try do
-      raise TestError
-    rescue
-      error in TestError -> transaction.set_error(error)
-    end
+    |> Appsignal.Transaction.set_error("AnotherError", "error message", System.stacktrace)
 
     Appsignal.Transaction.finish(transaction)
     :ok = Appsignal.Transaction.complete(transaction)
   end
 
-  # @decorate transaction_event
   defp create_transaction_performance_request do
     transaction = Appsignal.Transaction.start(
       Appsignal.Transaction.generate_id,
@@ -50,15 +41,11 @@ defmodule Mix.Tasks.Appsignal.Demo do
     |> Appsignal.Transaction.set_meta_data("path", "/hello")
     |> Appsignal.Transaction.set_meta_data("method", "GET")
 
-    instrument transaction, "phoenix.render", "Rendering something slow", fn() ->
+    instrument(transaction, "phoenix.render", "Rendering something slow", fn() ->
       :timer.sleep(2000)
-    end
+    end)
 
     Appsignal.Transaction.finish(transaction)
-    IO.inspect Appsignal.Transaction.complete(transaction)
-  end
-
-  defmodule TestError do
-    defexception message: "Hello world! This is an error used for demonstration purposes."
+    :ok = Appsignal.Transaction.complete(transaction)
   end
 end
