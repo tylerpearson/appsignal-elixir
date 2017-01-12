@@ -8,7 +8,6 @@ defmodule Mix.Tasks.Compile.Appsignal do
   end
 end
 
-
 defmodule Appsignal.Mixfile do
   use Mix.Project
 
